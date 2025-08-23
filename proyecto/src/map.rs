@@ -1,3 +1,5 @@
+#[derive(Clone)] 
+
 pub struct Map {
     pub width: usize,
     pub height: usize,
@@ -97,7 +99,7 @@ impl Map {
 
     pub fn get_cell(&self, x: usize, y: usize) -> u8 {
         if x >= self.width || y >= self.height {
-            return 1; // Return wall for out of bounds
+            return 1; 
         }
         self.data[y][x]
     }
@@ -109,29 +111,29 @@ impl Map {
     pub fn get_coin_positions(&self) -> Vec<(f32, f32)> {
     let mut coins = Vec::new();
     
-    // Define coin positions for each level - ensure they're in open spaces
+   
     match self.data[0][0] {
-        1 => { // Level 1 - positions adjusted to be in open areas
+        1 => { 
             coins.push((12.5, 3.5));
             coins.push((5.5, 10.5));
-            coins.push((12.5, 12.5))     // Moved from 12.5 to avoid walls
+            coins.push((12.5, 12.5))  
         }
-        2 => { // Level 2
+        2 => { 
             coins.push((4.5, 4.5));
             coins.push((11.5, 4.5));
-            coins.push((8.5, 8.5));
-            coins.push((6.5, 11.5)); // Adjusted y position
-            coins.push((9.5, 11.5)); // Adjusted y position
-            coins.push((12.5, 7.5)); // Adjusted x position
+            coins.push((7.5, 7.5));    
+            coins.push((4.5, 11.5));   
+            coins.push((11.5, 11.5));
+            coins.push((7.5, 4.5));     
         }
-        3 => { // Level 3
+        3 => { 
             coins.push((5.5, 5.5));
             coins.push((10.5, 5.5));
             coins.push((8.5, 7.5));
             coins.push((5.5, 10.5));
             coins.push((10.5, 10.5));
-            coins.push((8.5, 12.5)); // Adjusted y position
-            coins.push((4.5, 8.5));  // Adjusted x position
+            coins.push((8.5, 12.5)); 
+            coins.push((4.5, 8.5));  
         }
         _ => {}
     }

@@ -22,6 +22,9 @@ fn main() {
     rl.disable_cursor();
 
     let mut game = game::Game::new(&mut rl);
+    
+    
+    game.load_textures(&mut rl, &thread);
 
     while !rl.window_should_close() {
         game.update(&mut rl);
@@ -32,3 +35,4 @@ fn main() {
         game.draw(&mut d);
     }
 }
+

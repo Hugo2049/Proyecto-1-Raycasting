@@ -64,11 +64,10 @@ impl SpriteManager {
     }
 
     pub fn get_animation_scale(&self) -> f32 {
-        // Pulsing animation
-        1.0 + (self.animation_time * 5.0).sin() * 0.2
+        1.0
     }
 
     pub fn update_animation(&mut self, dt: f32) {
-        self.animation_time += dt;
+  
     }
 }
