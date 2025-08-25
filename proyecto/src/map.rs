@@ -1,5 +1,4 @@
-#[derive(Clone)] 
-
+#[derive(Clone)]
 pub struct Map {
     pub width: usize,
     pub height: usize,
@@ -99,7 +98,7 @@ impl Map {
 
     pub fn get_cell(&self, x: usize, y: usize) -> u8 {
         if x >= self.width || y >= self.height {
-            return 1; 
+            return 1;
         }
         self.data[y][x]
     }
@@ -109,35 +108,34 @@ impl Map {
     }
 
     pub fn get_coin_positions(&self) -> Vec<(f32, f32)> {
-    let mut coins = Vec::new();
-    
-   
-    match self.data[0][0] {
-        1 => { 
-            coins.push((12.5, 3.5));
-            coins.push((5.5, 10.5));
-            coins.push((12.5, 12.5))  
+        let mut coins = Vec::new();
+        
+        match self.data[0][0] {
+            1 => {
+                coins.push((12.5, 3.5));
+                coins.push((5.5, 10.5));
+                coins.push((12.5, 12.5))
+            }
+            2 => {
+                coins.push((4.5, 4.5));
+                coins.push((11.5, 4.5));
+                coins.push((7.5, 7.5));
+                coins.push((4.5, 11.5));
+                coins.push((11.5, 11.5));
+                coins.push((7.5, 4.5));
+            }
+            3 => {
+                coins.push((5.5, 5.5));
+                coins.push((10.5, 5.5));
+                coins.push((8.5, 7.5));
+                coins.push((5.5, 10.5));
+                coins.push((10.5, 10.5));
+                coins.push((8.5, 12.5));
+                coins.push((4.5, 8.5));
+            }
+            _ => {}
         }
-        2 => { 
-            coins.push((4.5, 4.5));
-            coins.push((11.5, 4.5));
-            coins.push((7.5, 7.5));    
-            coins.push((4.5, 11.5));   
-            coins.push((11.5, 11.5));
-            coins.push((7.5, 4.5));     
-        }
-        3 => { 
-            coins.push((5.5, 5.5));
-            coins.push((10.5, 5.5));
-            coins.push((8.5, 7.5));
-            coins.push((5.5, 10.5));
-            coins.push((10.5, 10.5));
-            coins.push((8.5, 12.5)); 
-            coins.push((4.5, 8.5));  
-        }
-        _ => {}
+        
+        coins
     }
-    
-    coins
-}
 }

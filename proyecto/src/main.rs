@@ -21,8 +21,7 @@ fn main() {
     rl.set_target_fps(60);
     rl.disable_cursor();
 
-    let mut game = game::Game::new(&mut rl);
-    
+    let mut game = game::Game::new(&mut rl, &thread);
     
     game.load_textures(&mut rl, &thread);
 
@@ -35,4 +34,3 @@ fn main() {
         game.draw(&mut d);
     }
 }
-

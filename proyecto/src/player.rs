@@ -17,7 +17,7 @@ impl Player {
             x,
             y,
             angle,
-            fov: PI / 3.0, 
+            fov: PI / 3.0,
             move_speed: 3.0,
             rot_speed: 2.0,
         }
@@ -26,10 +26,8 @@ impl Player {
     pub fn update(&mut self, rl: &mut RaylibHandle, map: &Map) {
         let dt = rl.get_frame_time();
         
-        
         let mouse_delta = rl.get_mouse_delta();
         self.angle += mouse_delta.x * 0.002;
-
         
         let mut move_x = 0.0;
         let mut move_y = 0.0;
@@ -51,7 +49,6 @@ impl Player {
             move_y += (self.angle + PI / 2.0).sin();
         }
 
-        
         if rl.is_key_down(KeyboardKey::KEY_LEFT) {
             self.angle -= self.rot_speed * dt;
         }
@@ -59,28 +56,23 @@ impl Player {
             self.angle += self.rot_speed * dt;
         }
 
-        
         let move_len = (move_x * move_x + move_y * move_y).sqrt();
         if move_len > 0.0 {
             move_x /= move_len;
             move_y /= move_len;
         }
 
-        
         let new_x = self.x + move_x * self.move_speed * dt;
         let new_y = self.y + move_y * self.move_speed * dt;
 
-     
         if !map.is_wall(new_x as usize, self.y as usize) {
             self.x = new_x;
         }
 
-    
         if !map.is_wall(self.x as usize, new_y as usize) {
             self.y = new_y;
         }
 
-       
         while self.angle < 0.0 {
             self.angle += 2.0 * PI;
         }

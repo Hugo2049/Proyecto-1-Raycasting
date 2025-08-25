@@ -16,7 +16,7 @@ impl Menu {
     pub fn update(&mut self, rl: &mut RaylibHandle) -> Option<usize> {
         self.title_animation += rl.get_frame_time();
         
-       
+        // Arrow key navigation
         if rl.is_key_pressed(KeyboardKey::KEY_UP) && self.selected_level > 0 {
             self.selected_level -= 1;
         }
@@ -24,19 +24,19 @@ impl Menu {
             self.selected_level += 1;
         }
         
-        
+        // Enter to start selected level
         if rl.is_key_pressed(KeyboardKey::KEY_ENTER) {
             return Some(self.selected_level);
         }
 
-       
+        // Number keys for quick selection
         if rl.is_key_pressed(KeyboardKey::KEY_ONE) {
             return Some(0);
         }
         if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
             return Some(1);
         }
-        if rl.is_key_pressed(KeyboardKey::KEY_TWO) {
+        if rl.is_key_pressed(KeyboardKey::KEY_THREE) {
             return Some(2);
         }
 
@@ -44,7 +44,7 @@ impl Menu {
     }
 
     pub fn draw(&self, d: &mut RaylibDrawHandle) {
-      
+        // Animated background
         let bg_color = Color::new(
             (20.0 + (self.title_animation * 0.5).sin() * 10.0) as u8,
             (30.0 + (self.title_animation * 0.3).sin() * 15.0) as u8,
@@ -53,13 +53,13 @@ impl Menu {
         );
         d.clear_background(bg_color);
 
-        
+        // Animated title
         let title = "RAY CASTER GAME";
         let title_size = 48;
         let title_width = measure_text(title, title_size);
         let title_y = 150.0 + (self.title_animation * 2.0).sin() * 10.0;
         
-       
+        // Drop shadow
         d.draw_text(
             title,
             512 - title_width / 2 + 3,
@@ -68,7 +68,7 @@ impl Menu {
             Color::BLACK,
         );
         
-       
+        // Main title
         d.draw_text(
             title,
             512 - title_width / 2,
@@ -77,7 +77,7 @@ impl Menu {
             Color::WHITE,
         );
 
-        
+        // Instructions
         let instruction = "Use WASD to move, Mouse to look around";
         let inst_width = measure_text(instruction, 20);
         d.draw_text(
@@ -88,7 +88,7 @@ impl Menu {
             Color::LIGHTGRAY,
         );
 
-       
+        // Level selection
         let levels = ["Level 1: The Beginning", "Level 2: The Corridors", "Level 3: The Maze"];
         let start_y = 320;
 
@@ -102,7 +102,7 @@ impl Menu {
                 Color::WHITE
             };
 
-            
+            // Selection arrow
             if i == self.selected_level {
                 d.draw_text(">", 420, y, 24, Color::YELLOW);
             }
@@ -110,22 +110,26 @@ impl Menu {
             d.draw_text(level_name, 450, y, 24, color);
         }
 
-        
+        // Controls section
         let controls_y = start_y + 180;
-        d.draw_text("Controls:", 450, controls_y, 20, Color::LIGHTGRAY);
+        d.draw_text("Game Controls:", 450, controls_y, 20, Color::LIGHTGRAY);
         d.draw_text("↑↓ - Select Level", 450, controls_y + 25, 16, Color::GRAY);
         d.draw_text("ENTER - Start Game", 450, controls_y + 45, 16, Color::GRAY);
         d.draw_text("1,2,3 - Quick Select", 450, controls_y + 65, 16, Color::GRAY);
         d.draw_text("ESC - Return to Menu (in game)", 450, controls_y + 85, 16, Color::GRAY);
+        
+        // Music controls
+        d.draw_text("Music Controls:", 450, controls_y + 110, 16, Color::LIGHTBLUE);
+        d.draw_text("M - Toggle Music On/Off", 450, controls_y + 130, 14, Color::GRAY);
+        d.draw_text("-/+ - Volume Down/Up", 450, controls_y + 150, 14, Color::GRAY);
 
-       
-        d.draw_text("Objective: Collect all coins to win!", 350, controls_y + 120, 20, Color::GOLD);
+        // Objective
+        d.draw_text("Objective: Collect all coins to win!", 350, controls_y + 180, 20, Color::GOLD);
 
-       
+        // Credits
         d.draw_text("Made with Rust & Raylib", 10, 740, 16, Color::DARKGRAY);
     }
 }
-
 
 fn measure_text(text: &str, font_size: i32) -> i32 {
     text.len() as i32 * font_size / 2

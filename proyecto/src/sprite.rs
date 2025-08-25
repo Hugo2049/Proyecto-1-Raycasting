@@ -64,10 +64,10 @@ impl SpriteManager {
     }
 
     pub fn get_animation_scale(&self) -> f32 {
-        1.0
+        1.0 + (self.animation_time * 3.0).sin() * 0.1
     }
 
     pub fn update_animation(&mut self, dt: f32) {
-  
+        self.animation_time += dt;
     }
 }
