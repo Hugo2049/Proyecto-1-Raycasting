@@ -10,6 +10,10 @@ const RAY_COUNT: usize = SCREEN_WIDTH as usize;
 pub struct RayCaster {
     z_buffer: [f32; RAY_COUNT],
     coin_texture: Option<Texture2D>,
+    wall_texture: Option<Texture2D>,
+    floor_texture: Option<Texture2D>,
+    // Pre-create a render texture for better performance
+    wall_strip_texture: Option<RenderTexture2D>,
 }
 
 impl RayCaster {
@@ -17,24 +21,77 @@ impl RayCaster {
         Self {
             z_buffer: [0.0; RAY_COUNT],
             coin_texture: None,
+            wall_texture: None,
+            floor_texture: None,
+            wall_strip_texture: None,
         }
     }
 
     pub fn load_textures(&mut self, rl: &mut RaylibHandle, thread: &RaylibThread) {
-        let texture_paths = [
+        // Load coin texture (keeping existing logic)
+        let coin_texture_paths = [
             "assets/sprites/sprite.png",
             "assets/sprites/coin.png",
             "assets/coin.png",
         ];
 
-        for path in &texture_paths {
+        for path in &coin_texture_paths {
             match rl.load_texture(thread, path) {
                 Ok(texture) => {
+                    println!("Loaded coin texture from: {}", path);
                     self.coin_texture = Some(texture);
-                    return;
+                    break;
                 }
                 Err(_) => continue,
             }
+        }
+
+        // Load wall texture
+        let wall_texture_paths = [
+            "assets/textures/dungeon.jpg",
+            "assets/textures/iceDungeon.jpg",
+            "dungeon.jpg",
+        ];
+
+        for path in &wall_texture_paths {
+            match rl.load_texture(thread, path) {
+                Ok(texture) => {
+                    println!("Loaded wall texture from: {}", path);
+                    self.wall_texture = Some(texture);
+                    break;
+                }
+                Err(e) => {
+                    println!("Failed to load wall texture from {}: {}", path, e);
+                    continue;
+                }
+            }
+        }
+
+        // Load floor texture
+        let floor_texture_paths = [
+            "assets/textures/ground.jpg",
+            "assets/textures/Ground2.jpg",
+            "ground.jpg",
+        ];
+
+        for path in &floor_texture_paths {
+            match rl.load_texture(thread, path) {
+                Ok(texture) => {
+                    println!("Loaded floor texture from: {}", path);
+                    self.floor_texture = Some(texture);
+                    break;
+                }
+                Err(e) => {
+                    println!("Failed to load floor texture from {}: {}", path, e);
+                    continue;
+                }
+            }
+        }
+
+        // Create a small render texture for wall strips
+        match rl.load_render_texture(thread, 1, SCREEN_HEIGHT as u32) {
+            Ok(rt) => self.wall_strip_texture = Some(rt),
+            Err(e) => println!("Failed to create wall strip render texture: {}", e),
         }
     }
 
@@ -43,37 +100,40 @@ impl RayCaster {
             let camera_x = 2.0 * i as f32 / RAY_COUNT as f32 - 1.0;
             let ray_angle = player.angle + camera_x * player.fov / 2.0;
             
-            let (hit_distance, wall_type) = self.cast_ray(player, map, ray_angle);
+            let (hit_distance, wall_type, wall_x, is_vertical_wall) = self.cast_ray_detailed(player, map, ray_angle);
             
             self.z_buffer[i] = hit_distance;
             
+            // Calculate wall height and position
             let wall_height = (SCREEN_HEIGHT as f32 / hit_distance).min(SCREEN_HEIGHT as f32);
             let wall_start = ((SCREEN_HEIGHT as f32 - wall_height) / 2.0) as i32;
             let wall_end = wall_start + wall_height as i32;
             
-            let wall_color = self.get_wall_color(wall_type, hit_distance);
+            // Draw textured wall column
+            self.draw_wall_column(d, i as i32, wall_start, wall_end, wall_x, wall_height, hit_distance, wall_type, is_vertical_wall);
             
-            d.draw_line(i as i32, wall_start, i as i32, wall_end, wall_color);
-            
-            d.draw_line(i as i32, wall_end, i as i32, SCREEN_HEIGHT, Color::DARKGRAY);
-            
-            d.draw_line(i as i32, 0, i as i32, wall_start, Color::DARKBLUE);
+            // Draw floor and ceiling
+            self.draw_floor_and_ceiling(d, i as i32, wall_start, wall_end, player, ray_angle);
         }
         
         self.draw_sprites(d, player, sprites);
     }
 
-    fn cast_ray(&self, player: &Player, map: &Map, angle: f32) -> (f32, u8) {
+    fn cast_ray_detailed(&self, player: &Player, map: &Map, angle: f32) -> (f32, u8, f32, bool) {
         let dx = angle.cos();
         let dy = angle.sin();
         
         let mut ray_x = player.x;
         let mut ray_y = player.y;
         
-        let step = 0.01;
+        let step = 0.005; // Smaller step for more precision
         let mut distance = 0.0;
+        let mut last_x = ray_x;
+        let mut last_y = ray_y;
         
         loop {
+            last_x = ray_x;
+            last_y = ray_y;
             ray_x += dx * step;
             ray_y += dy * step;
             distance += step;
@@ -82,20 +142,146 @@ impl RayCaster {
             let grid_y = ray_y as usize;
             
             if grid_x >= map.width || grid_y >= map.height {
-                return (distance, 1);
+                return (distance, 1, 0.0, false);
             }
             
             let wall_type = map.get_cell(grid_x, grid_y);
             if wall_type > 0 {
-                return (distance, wall_type);
+                // Determine if we hit a vertical or horizontal wall
+                let last_grid_x = last_x as usize;
+                let last_grid_y = last_y as usize;
+                
+                let is_vertical_wall = last_grid_x != grid_x;
+                
+                // Calculate texture coordinate
+                let wall_x = if is_vertical_wall {
+                    ray_y.fract()
+                } else {
+                    ray_x.fract()
+                };
+                
+                return (distance, wall_type, wall_x, is_vertical_wall);
             }
             
-            if distance > 20.0 {
+            if distance > 25.0 {
                 break;
             }
         }
         
-        (distance, 1)
+        (distance, 1, 0.0, false)
+    }
+
+    fn draw_wall_column(&self, d: &mut RaylibDrawHandle, x: i32, wall_start: i32, wall_end: i32, 
+                       wall_x: f32, wall_height: f32, distance: f32, wall_type: u8, is_vertical_wall: bool) {
+        
+        if let Some(wall_texture) = &self.wall_texture {
+            let tex_x = (wall_x * wall_texture.width as f32) as i32;
+            let tex_x = tex_x.max(0).min(wall_texture.width - 1);
+            
+            // Calculate brightness based on distance and wall orientation
+            let mut brightness = (1.0 / (1.0 + distance * 0.08)).min(1.0);
+            if !is_vertical_wall {
+                brightness *= 0.7; // Make horizontal walls slightly darker
+            }
+            
+            let tint = Color::new(
+                (255.0 * brightness) as u8,
+                (255.0 * brightness) as u8,
+                (255.0 * brightness) as u8,
+                255,
+            );
+            
+            // Draw textured wall strip
+            let wall_rect_height = (wall_end - wall_start).max(1);
+            
+            let source_rect = Rectangle::new(
+                tex_x as f32, 
+                0.0, 
+                1.0, 
+                wall_texture.height as f32
+            );
+            
+            let dest_rect = Rectangle::new(
+                x as f32, 
+                wall_start as f32, 
+                1.0, 
+                wall_rect_height as f32
+            );
+            
+            d.draw_texture_pro(
+                wall_texture,
+                source_rect,
+                dest_rect,
+                Vector2::zero(),
+                0.0,
+                tint
+            );
+        } else {
+            // Fallback to colored walls if no texture
+            let wall_color = self.get_wall_color(wall_type, distance);
+            d.draw_line(x, wall_start, x, wall_end, wall_color);
+        }
+    }
+
+    fn draw_floor_and_ceiling(&self, d: &mut RaylibDrawHandle, x: i32, wall_start: i32, wall_end: i32, 
+                             player: &Player, ray_angle: f32) {
+        
+        // Draw ceiling
+        let ceiling_color = Color::new(30, 30, 60, 255);
+        d.draw_line(x, 0, x, wall_start.max(0), ceiling_color);
+        
+        // Draw floor
+        if let Some(floor_texture) = &self.floor_texture {
+            self.draw_textured_floor(d, x, wall_end, player, ray_angle, floor_texture);
+        } else {
+            let floor_color = Color::new(60, 40, 30, 255);
+            d.draw_line(x, wall_end.max(0), x, SCREEN_HEIGHT, floor_color);
+        }
+    }
+
+    fn draw_textured_floor(&self, d: &mut RaylibDrawHandle, x: i32, wall_end: i32, 
+                          player: &Player, ray_angle: f32, floor_texture: &Texture2D) {
+        
+        let floor_start = wall_end.max(SCREEN_HEIGHT / 2);
+        let step_size = 2; // Draw every 2nd pixel for performance
+        
+        for y in (floor_start..SCREEN_HEIGHT).step_by(step_size) {
+            let distance_to_floor = (SCREEN_HEIGHT as f32 / 2.0 - y as f32);
+            if distance_to_floor.abs() < 1.0 {
+                continue;
+            }
+            
+            let row_distance = (SCREEN_HEIGHT as f32 / 2.0) / distance_to_floor.abs();
+            
+            if row_distance > 0.0 && row_distance < 25.0 {
+                let floor_x = player.x + ray_angle.cos() * row_distance;
+                let floor_y = player.y + ray_angle.sin() * row_distance;
+                
+                let tex_x = ((floor_x * floor_texture.width as f32) as i32 % floor_texture.width).abs();
+                let tex_y = ((floor_y * floor_texture.height as f32) as i32 % floor_texture.height).abs();
+                
+                let brightness = (1.0 / (1.0 + row_distance * 0.15)).min(0.8);
+                let tint = Color::new(
+                    (255.0 * brightness) as u8,
+                    (255.0 * brightness) as u8,
+                    (255.0 * brightness) as u8,
+                    255,
+                );
+                
+                // Draw a small rectangle from the texture instead of just a pixel
+                let source_rect = Rectangle::new(tex_x as f32, tex_y as f32, 1.0, 1.0);
+                let dest_rect = Rectangle::new(x as f32, y as f32, 1.0, step_size as f32);
+                
+                d.draw_texture_pro(
+                    floor_texture,
+                    source_rect,
+                    dest_rect,
+                    Vector2::zero(),
+                    0.0,
+                    tint
+                );
+            }
+        }
     }
 
     fn get_wall_color(&self, wall_type: u8, distance: f32) -> Color {
