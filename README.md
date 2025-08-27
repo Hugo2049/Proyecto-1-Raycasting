@@ -44,7 +44,7 @@ cargo run
 
 ```
 
-## puntos realizados
+## Puntos realizados
 
 ✅ Cámara con movimiento y rotación (20 puntos)
 
@@ -103,3 +103,15 @@ cargo run
     Sistema muestra FPS en pantalla: ✅
 
     Puntos completos: 15
+
+
+
+## Juego Corriendo
+
+<img width="1031" height="770" alt="swappy-20250826-222639" src="https://github.com/user-attachments/assets/27a82432-dd1e-4438-ae24-67aa3822c852" />
+
+
+
+<img width="1920" height="1080" alt="Screenshot_26-Aug_22-27-10_13749" src="https://github.com/user-attachments/assets/c84d664a-41ed-48ea-b03d-f86ba1d2a7c6" />
+
+
